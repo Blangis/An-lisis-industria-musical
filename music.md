@@ -67,7 +67,7 @@ FROM `laboratoria-470421.data_music.competition`
 // La salida: 559 valores diferentes a 0, 344 iguales a cero y 50 nulos;
 ```
 
-Para imputar los nulos con ceros (revisar opción), se puede crear otra tabla con esta consulta:
+Para trabajar con esos valores más adelante con Looker studio, se decidió imputar esos valores NULL con -1, para así diferenciar de los 0. Y se puede crear otra tabla con esta consulta:
 
 ```
 CREATE OR REPLACE TABLE data_music.competition_clean AS
@@ -77,7 +77,7 @@ SELECT
   in_apple_charts,
   in_deezer_playlists,
   in_deezer_charts,
-  IFNULL(in_shazam_charts, 0) AS in_shazam_charts
+  IFNULL(in_shazam_charts, -1) AS in_shazam_charts
 FROM `laboratoria-470421.data_music.competition`;
 ```
 
@@ -170,4 +170,249 @@ COUNTIF(`speechiness_%` IS NULL) AS nulos_speech,
 FROM `laboratoria-470421.data_music.technical_info`
 ```
 
+Hubo 95 nulos en key (tonalidad de la canción), para cuestiones de visualizaciones se consideró imputar esos valores nulos por "Sin info" con esta consulta que crea una tabla:
+
+```
+CREATE OR REPLACE TABLE data_music.technical_info_for_dashboard AS
+SELECT
+  track_id,
+  bpm,
+  -- Imputamos "Sin info" donde key es NULL
+  IFNULL(key, 'Sin info') AS key,
+  mode,
+  `danceability_%`,
+  `valence_%`,
+  `energy_%`,
+  `acousticness_%`,
+  `instrumentalness_%`,
+  `liveness_%`,
+  `speechiness_%`
+FROM data_music.technical_info;
+```
+
 # Identificar duplicados
+
+## En **competition**
+
+```
+SELECT
+  track_id,
+  COUNT(*) AS cantidad
+FROM `data_music.competition`
+GROUP BY track_id
+HAVING COUNT(*) > 1;
+// 0 duplicados
+```
+
+## En **technical_info**
+
+```
+SELECT
+  track_id,
+  COUNT(*) AS cantidad
+FROM `data_music.technical_info`
+GROUP BY track_id
+HAVING COUNT(*) > 1;
+// 0 duplicados
+```
+
+## En **spotify**
+
+```
+SELECT
+  track_id,
+  COUNT(*) AS cantidad
+FROM `data_music.spotify`
+GROUP BY track_id
+HAVING COUNT(*) > 1;
+// 0 duplicados
+```
+
+El check con track_id es suficiente para asegurar que cada canción está registrada una sola vez.
+
+### 🔹 Revisión de duplicados por columna
+
+| Columna                                                                                                                      | Revisión de duplicados necesaria | Observaciones                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **track_id**                                                                                                                 | Sí                               | Identificador único de cada canción. Debe ser único en toda la tabla. Duplicados aquí indicarían registros repetidos. |
+| track_name                                                                                                                   | No                               | Puede repetirse entre canciones distintas (covers, remixes, diferentes artistas).                                     |
+| artists_name                                                                                                                 | No                               | Varios artistas pueden aparecer en múltiples canciones, no indica error.                                              |
+| artist_count                                                                                                                 | No                               | Número de artistas por canción, puede repetirse.                                                                      |
+| released_year                                                                                                                | No                               | Año de lanzamiento, varias canciones pueden compartirlo.                                                              |
+| released_month                                                                                                               | No                               | Mes de lanzamiento, se repite naturalmente.                                                                           |
+| released_day                                                                                                                 | No                               | Día de lanzamiento, se repite naturalmente.                                                                           |
+| in_spotify_playlists                                                                                                         | No                               | Métrica de difusión, valores iguales no indican duplicados.                                                           |
+| in_spotify_charts                                                                                                            | No                               | Métrica de popularidad, valores iguales no indican duplicados.                                                        |
+| streams                                                                                                                      | No                               | Número de reproducciones, puede repetirse sin problema.                                                               |
+| in_apple_playlists / in_apple_charts / in_deezer_playlists / in_deezer_charts / in_shazam_charts                             | No                               | Métricas de aparición en plataformas, no son identificadores.                                                         |
+| bpm / key / mode / danceability*% / valence*% / energy*% / acousticness*% / instrumentalness*% / liveness*% / speechiness\_% | No                               | Características técnicas de la canción, valores repetidos no indican error.                                           |
+
+Aun así, revisamos que no hubiera canciones con el mismo nombre y del mismo artista, encontramos que hubo 4 canciones que sí, por lo que revisamos que la tonalidad (key) fuera diferente, porque eso implica que es otra versión de la misma canción.
+
+Mismo track_name + artist + key (y si quieres también mode) → probablemente es exactamente la misma canción, quizás duplicada por error en la base.
+
+Mismo track_name + artist, pero distinto key → es otra versión (remix, acústica, live, etc.), no la borras.
+
+Se ocupó esta consulta:
+
+```
+SELECT
+  s.track_name,
+  s.artists_name,
+  info.key,
+  info.mode
+FROM
+  `data_music.spotify` AS s
+JOIN
+  `data_music.technical_info` AS info
+ON
+  s.track_id = info.track_id
+WHERE
+  s.track_name IN (
+    SELECT track_name
+    FROM `data_music.spotify`
+    GROUP BY track_name, artists_name
+    HAVING COUNT(*) > 1
+  )
+ORDER BY
+  s.track_name, s.artists_name;
+```
+
+De esta consulta obtuvimos:
+| Fila | track_name | artists_name | key | mode |
+|------|-------------------|-------------|------|-------|
+| 1 | About Damn Time | Lizzo | A# | Minor |
+| 2 | About Damn Time | Lizzo | A# | Minor |
+| 3 | SNAP | Rosa Linn | null | Major |
+| 4 | SNAP | Rosa Linn | null | Major |
+| 5 | SPIT IN MY FACE! | ThxSoMch | G# | Major |
+| 6 | SPIT IN MY FACE! | ThxSoMch | C# | Major |
+| 7 | Take My Breath | The Weeknd | A# | Minor |
+|8 |Take My Breath | The Weeknd | G# | Major |
+
+Para el caso de ThxSoMch y The Weeknd se dejarán los "repetidos" porque tienen diferentes tonalidades y/ó modo musical. En el caso de Lizzo y de SNAP, que son iguales esos parámetros en ambos duplicados, se decidió
+
+## Identificar y tratar valores atípicos en variables categóricas
+
+Una variable categórica son aquellas que toman valores de un conjunto limitado.
+
+Valores atípicos suelen ser errores de escritura, mayúsculas/minúsculas inconsistentes, espacios extra o caracteres especiales.
+
+### spotify
+
+Para cada columna categórica, primero quiero ver todas las combinaciones o variantes existentes.
+
+```
+SELECT DISTINCT artists_name
+FROM `data_music.spotify`
+ORDER BY artists_name;
+```
+
+DISTINCT devuelve cada valor único una sola vez.
+De ahí obtuve:
+
+```
+1. (G)I-DLE
+2. 21 Savage, Gunna
+3. 24kgoldn, Iann Dior
+4. 50 Cent
+5. A$AP Rocky, Metro Boomin, Roisee
+6. Abhijay Sharma, Riar Saab
+7. Adassa, Mauro Castillo, Stephanie Beatriz, Encanto - Cast, Rhenzy Feliz, Diane Guerrero, Carolina Gaitan
+8. Adele
+9. Aerosmith
+10. Agust D
+11. Aitana, zzoilo
+12. Ak4:20, Cris Mj, Pailita
+13. Alec Benjamin
+14. Alvaro Diaz, Rauw Alejandro
+15. Ana Castela, AgroPlay
+16. Andy Williams
+17. Anggi Marito
+18. Anitta
+19. Anitta, Tini, Becky G
+20. AnnenMayKantereit, Giant Rooks
+21. Anuel Aa, Jhay Cortez
+22. Anuel Aa, Myke Towers, Jhay Cortez
+23. Arcangel, Bad Bunny
+24. Arcangel, Bizarrap
+25. Arcangel, De La Ghetto, Justin Quiles, Lenny Tav��rez, Sech, Dalex, Dimelo Flow, Rich Music
+26. Arctic Monkeys
+27. Ariana Grande
+28. Ariana Grande, The Weeknd
+29. Arijit Singh, Sachin-Jigar
+30. Arijit Singh, Sachin-Jigar, Amitabha Bhattacharya
+31. Arijit Singh, Vishal Dadlani, Sukriti Kakar, Vishal-Shekhar, Shekhar Ravjiani, Kumaar
+32. Armani White
+33. Aventura, Bad Bunny
+34. Avicii
+35. Ayparia, unxbected
+36. BIGBANG
+37. BLACKPINK
+38. BLESSD, Peso Pluma
+39. BTS
+40. BTS, Jung Kook, FIFA Sound
+41. BYOR, Imanbek
+42. Baby Rasta, Rauw Alejandro
+43. Baby Tate
+44. Bad Bunny
+45. Bad Bunny, Eladio Carrion
+46. Bad Bunny, Grupo Frontera
+47. Bad Bunny, Jhay Cortez
+48. Bad Bunny, Rauw Alejandro
+49. Bad Bunny, Tainy
+50. Bad Bunny, The Mar��
+```
+
+Consulta que se corrió para normalizar texto:
+
+```
+-- 1. Explorar valores únicos de artistas
+SELECT DISTINCT artists_name
+FROM `laboratoria-470421.data_music.spotify`
+ORDER BY artists_name;
+
+-- 2. Crear tabla limpia con textos estandarizados
+CREATE OR REPLACE TABLE data_music.spotify_clean AS
+SELECT
+  track_id,
+
+  -- Limpieza de track_name
+  REGEXP_REPLACE(
+    REPLACE(
+      REPLACE(
+        REPLACE(LOWER(track_name), '��', 'é'),
+        'á', 'a'
+      ),
+      'ä', 'a'
+    ),
+    r'\s+', ' '
+  ) AS track_name_clean,
+
+  -- Limpieza de artists_name
+  REGEXP_REPLACE(
+    REPLACE(
+      REPLACE(
+        REPLACE(LOWER(artists_name), '��', 'é'),
+        'á', 'a'
+      ),
+      'ä', 'a'
+    ),
+    r'\s+', ' '
+  ) AS artists_name_clean,
+
+  artist_count,
+  released_year,
+  released_month,
+  released_day,
+  in_spotify_playlists,
+  in_spotify_charts,
+  streams -- lo dejamos tal cual (STRING)
+
+FROM `laboratoria-470421.data_music.spotify`;
+
+-- 3. Revisar valores únicos de artistas ya limpios
+SELECT DISTINCT artists_name_clean
+FROM data_music.spotify_clean
+ORDER BY artists_name_clean;
+```
