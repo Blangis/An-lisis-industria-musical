@@ -482,6 +482,29 @@ No se identificaron valores atípicos en las columnas numéricas. La tabla `tech
 
 ## Resumen de variables numéricas - `spotify_clean`
 
+```
+SELECT
+  MIN(artist_count) AS min_artist_count,
+  MAX(artist_count) AS max_artist_count,
+
+  MIN(released_year) AS min_year,
+  MAX(released_year) AS max_year,
+
+  MIN(released_month) AS min_month,
+  MAX(released_month) AS max_month,
+
+  MIN(released_day) AS min_day,
+  MAX(released_day) AS max_day,
+
+  MIN(in_spotify_playlists) AS min_playlists,
+  MAX(in_spotify_playlists) AS max_playlists,
+
+  MIN(in_spotify_charts) AS min_charts,
+  MAX(in_spotify_charts) AS max_charts
+
+FROM `laboratoria-470421.data_music.spotify_clean`;
+```
+
 | Variable                 | Valor mínimo | Valor máximo | Comentario                                                                                  |
 | ------------------------ | ------------ | ------------ | ------------------------------------------------------------------------------------------- |
 | **artist_count**         | 1            | 8            | La mayoría de canciones tienen entre 1 y pocos artistas; más de 5 podría ser inusual.       |
@@ -490,3 +513,59 @@ No se identificaron valores atípicos en las columnas numéricas. La tabla `tech
 | **released_day**         | 1            | 31           | Valores en rango esperado según calendario.                                                 |
 | **in_spotify_playlists** | 0            | 52898        | Alta variación; valores muy grandes pueden considerarse outliers de popularidad.            |
 | **in_spotify_charts**    | 0            | 147          | Rango razonable; outliers posibles en canciones con mucha exposición.                       |
+
+---
+
+## Resumen de variables numéricas — Tabla `competition_clean`
+
+| Variable            | Mínimo | Máximo | Promedio | Comentario                                                                                                              |
+| ------------------- | ------ | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| in_apple_playlists  | 0      | 672    | 67.81    | Valores dentro de rango esperado.                                                                                       |
+| in_apple_charts     | 0      | 275    | 51.91    | Distribución razonable.                                                                                                 |
+| in_deezer_playlists | 0      | 12367  | 385.19   | Amplia variación, posible sesgo por tracks muy populares.                                                               |
+| in_deezer_charts    | 0      | 58     | 2.67     | Rango consistente.                                                                                                      |
+| in_shazam_charts    | -1     | 1451   | 56.80    | El valor **-1 indica "sin información"** (se imputó así para evitar `NULL` y facilitar visualización en Looker Studio). |
+
+---
+
+## Verificar y cambiar tipo de datos
+
+En streams teníamos string y pasaremos a int, además revisamos que solo hubiera números válidos. Con la siguiente consulta creamos una tabla nueva con esas consideraciones:
+`Se imputó el valor que era una cadena de texto con -1, que significará sin información`
+
+```
+CREATE OR REPLACE TABLE `laboratoria-470421.data_music.spotify_clean_casted` AS
+SELECT
+  track_id,
+  track_name_clean,
+  artists_name_clean,
+  artist_count,
+  released_year,
+  released_month,
+  released_day,
+  in_spotify_playlists,
+  in_spotify_charts,
+  CASE
+    WHEN REGEXP_CONTAINS(streams, r'^[0-9]+$')
+      THEN CAST(streams AS INT64)
+    ELSE -1
+  END AS streams
+FROM `laboratoria-470421.data_music.spotify_clean`;
+```
+
+## Creación de nuevas variables
+
+```
+CREATE OR REPLACE TABLE `laboratoria-470421.data_music.spotify_with_new_vars` AS
+SELECT
+  *,
+  -- Concatenar año, mes y día en formato YYYY-MM-DD
+  PARSE_DATE('%Y-%m-%d',
+    CONCAT(
+      CAST(released_year AS STRING), '-',
+      LPAD(CAST(released_month AS STRING), 2, '0'), '-',
+      LPAD(CAST(released_day AS STRING), 2, '0')
+    )
+  ) AS release_date
+FROM `laboratoria-470421.data_music.spotify_clean_casted`;
+```
