@@ -290,7 +290,25 @@ De esta consulta obtuvimos:
 | 7 | Take My Breath | The Weeknd | A# | Minor |
 |8 |Take My Breath | The Weeknd | G# | Major |
 
-Para el caso de ThxSoMch y The Weeknd se dejarán los "repetidos" porque tienen diferentes tonalidades y/ó modo musical. En el caso de Lizzo y de SNAP, que son iguales esos parámetros en ambos duplicados, se decidió
+Para el caso de ThxSoMch y The Weeknd se dejarán los "repetidos" porque tienen diferentes tonalidades y/ó modo musical. En el caso de Lizzo y de SNAP, que son iguales esos parámetros en ambos duplicados, se decidió continuar con la que tenía más reproducciones.
+
+Se buscó eliminar registros que no quiero (track_id = '5080031' OR track_id = '3814670'), ocupando:
+
+```
+SELECT * FROM `data_music.spotify_clean`
+WHERE artists_name_clean = "lizzo" OR artists_name_clean="rosa linn";
+
+SELECT *
+FROM `data_music.spotify_clean`
+WHERE track_id = '5080031' OR track_id = '3814670';
+
+DELETE FROM `data_music.spotify_clean`
+WHERE track_id = '5080031' OR track_id = '3814670';
+```
+
+Sin embargo, la versión gratuita de bigquery no permite esas modificaciones.
+
+Se hizo una nueva tabla, conjunta con la normalización de nombres de artistas que se explica en el siguiente bloque.
 
 ## Identificar y tratar valores atípicos en variables categóricas
 
@@ -298,7 +316,7 @@ Una variable categórica son aquellas que toman valores de un conjunto limitado.
 
 Valores atípicos suelen ser errores de escritura, mayúsculas/minúsculas inconsistentes, espacios extra o caracteres especiales.
 
-### spotify
+## **spotify**
 
 Para cada columna categórica, primero quiero ver todas las combinaciones o variantes existentes.
 
@@ -364,7 +382,7 @@ De ahí obtuve:
 50. Bad Bunny, The Mar��
 ```
 
-Consulta que se corrió para normalizar texto:
+Consulta que se corrió para normalizar texto en artist name y track_name, así como para eliminar duplicados:
 
 ```
 -- 1. Explorar valores únicos de artistas
@@ -372,7 +390,7 @@ SELECT DISTINCT artists_name
 FROM `laboratoria-470421.data_music.spotify`
 ORDER BY artists_name;
 
--- 2. Crear tabla limpia con textos estandarizados
+-- 2. Crear tabla limpia con textos estandarizados y sin duplicados específicos
 CREATE OR REPLACE TABLE data_music.spotify_clean AS
 SELECT
   track_id,
@@ -409,10 +427,66 @@ SELECT
   in_spotify_charts,
   streams -- lo dejamos tal cual (STRING)
 
-FROM `laboratoria-470421.data_music.spotify`;
-
--- 3. Revisar valores únicos de artistas ya limpios
-SELECT DISTINCT artists_name_clean
-FROM data_music.spotify_clean
-ORDER BY artists_name_clean;
+FROM `laboratoria-470421.data_music.spotify`
+WHERE track_id NOT IN ('5080031', '3814670');  -- <--- aquí filtras los duplicados.
 ```
+
+## **technical_info**
+
+En esta tabla las variables categóricas, son las columnas de texto/categóricas de la tabla technical_info_for_dashboard (tabla actualizada de technical_info):
+
+- key
+- mode
+
+Hice la consulta de:
+
+```
+SELECT * FROM `laboratoria-470421.data_music.technical_info_for_dashboard`;
+
+-- Revisar valores únicos de key
+SELECT DISTINCT key
+FROM `laboratoria-470421.data_music.technical_info_for_dashboard`
+ORDER BY key;
+
+-- Revisar valores únicos de mode
+SELECT DISTINCT mode
+FROM `laboratoria-470421.data_music.technical_info_for_dashboard`
+ORDER BY mode;
+```
+
+En key hay valores musicales válidos (A, A#, … G#) y uno que dice "Sin info".
+
+En mode también había valores válidos: Major/Minor.
+
+#
+
+## Resumen de variables numéricas - `technical_info_dor_dashboard`
+
+Se revisaron las columnas numéricas de la tabla `technical_info_dor_dashboard` para identificar posibles valores atípicos usando MIN, MAX y AVG.
+
+| Columna             | Valor mínimo | Valor máximo | Promedio aproximado | Rango esperado | Comentario                 |
+| ------------------- | ------------ | ------------ | ------------------- | -------------- | -------------------------- |
+| bpm                 | 65           | 206          | 122.5               | 40 – 250       | Dentro de rango musical    |
+| danceability\_%     | 23           | 96           | 67.0                | 0 – 100        | No hay valores atípicos    |
+| valence\_%          | 4            | 97           | 51.4                | 0 – 100        | Dentro del rango esperado  |
+| energy\_%           | 9            | 97           | 64.3                | 0 – 100        | Sin valores fuera de rango |
+| acousticness\_%     | 0            | 97           | 27.1                | 0 – 100        | Correcto                   |
+| instrumentalness\_% | 0            | 91           | 1.58                | 0 – 100        | Dentro del rango esperado  |
+| liveness\_%         | 3            | 97           | 18.2                | 0 – 100        | Correcto                   |
+| speechiness\_%      | 2            | 64           | 10.1                | 0 – 100        | Dentro del rango esperado  |
+
+**Conclusión:**  
+No se identificaron valores atípicos en las columnas numéricas. La tabla `technical_info_dor_dashboard` está lista para análisis y visualización.
+
+---
+
+## Resumen de variables numéricas - `spotify_clean`
+
+| Variable                 | Valor mínimo | Valor máximo | Comentario                                                                                  |
+| ------------------------ | ------------ | ------------ | ------------------------------------------------------------------------------------------- |
+| **artist_count**         | 1            | 8            | La mayoría de canciones tienen entre 1 y pocos artistas; más de 5 podría ser inusual.       |
+| **released_year**        | 1930         | 2023         | Posibles registros antiguos (1930) que podrían no corresponder a música popular en Spotify. |
+| **released_month**       | 1            | 12           | Valores en rango esperado, no hay atípicos.                                                 |
+| **released_day**         | 1            | 31           | Valores en rango esperado según calendario.                                                 |
+| **in_spotify_playlists** | 0            | 52898        | Alta variación; valores muy grandes pueden considerarse outliers de popularidad.            |
+| **in_spotify_charts**    | 0            | 147          | Rango razonable; outliers posibles en canciones con mucha exposición.                       |
