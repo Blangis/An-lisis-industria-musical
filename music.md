@@ -81,8 +81,6 @@ SELECT
 FROM `laboratoria-470421.data_music.competition`;
 ```
 
-Se decidió que los valores nulos en in_shazam_charts se interpretan como información no disponible. Por eso se mantienen como NULL y no se imputan.
-
 # Spotify
 
 ### 🔹 Glosario de columnas - tabla `spotify`
@@ -249,9 +247,9 @@ El check con track_id es suficiente para asegurar que cada canción está regist
 
 Aun así, revisamos que no hubiera canciones con el mismo nombre y del mismo artista, encontramos que hubo 4 canciones que sí, por lo que revisamos que la tonalidad (key) fuera diferente, porque eso implica que es otra versión de la misma canción.
 
-Mismo track_name + artist + key (y si quieres también mode) → probablemente es exactamente la misma canción, quizás duplicada por error en la base.
+Mismo track_name + artist + key (y puede ser mode) → probablemente es exactamente la misma canción, quizás duplicada por error en la base.
 
-Mismo track_name + artist, pero distinto key → es otra versión (remix, acústica, live, etc.), no la borras.
+Mismo track_name + artist, pero distinto key → es otra versión (remix, acústica, live, etc.), no la borramos.
 
 Se ocupó esta consulta:
 
@@ -290,7 +288,7 @@ De esta consulta obtuvimos:
 | 7 | Take My Breath | The Weeknd | A# | Minor |
 |8 |Take My Breath | The Weeknd | G# | Major |
 
-Para el caso de ThxSoMch y The Weeknd se dejarán los "repetidos" porque tienen diferentes tonalidades y/ó modo musical. En el caso de Lizzo y de SNAP, que son iguales esos parámetros en ambos duplicados, se decidió continuar con la que tenía más reproducciones.
+Para el caso de ThxSoMch y The Weeknd se dejarán los "repetidos" porque tienen diferentes tonalidades y/ó modo musical. En el caso de Lizzo y de SNAP, que son iguales esos parámetros en ambos duplicados, se decidió continuar con la que tenía más números en playlist y reproducciones.
 
 Se buscó eliminar registros que no quiero (track_id = '5080031' OR track_id = '3814670'), ocupando:
 
@@ -433,7 +431,7 @@ WHERE track_id NOT IN ('5080031', '3814670');  -- <--- aquí filtras los duplica
 
 ## **technical_info**
 
-En esta tabla las variables categóricas, son las columnas de texto/categóricas de la tabla technical_info_for_dashboard (tabla actualizada de technical_info):
+En esta tabla las variables categóricas, son las columnas de texto de la tabla technical_info_for_dashboard (tabla actualizada de technical_info):
 
 - key
 - mode
@@ -454,7 +452,7 @@ FROM `laboratoria-470421.data_music.technical_info_for_dashboard`
 ORDER BY mode;
 ```
 
-En key hay valores musicales válidos (A, A#, … G#) y uno que dice "Sin info".
+En key hay valores musicales válidos (A, A#, … G#) y uno que dice "Sin info" lo cual es correcto porque "Sin info" lo imputamos previamente.
 
 En mode también había valores válidos: Major/Minor.
 
@@ -507,7 +505,7 @@ FROM `laboratoria-470421.data_music.spotify_clean`;
 
 | Variable                 | Valor mínimo | Valor máximo | Comentario                                                                                  |
 | ------------------------ | ------------ | ------------ | ------------------------------------------------------------------------------------------- |
-| **artist_count**         | 1            | 8            | La mayoría de canciones tienen entre 1 y pocos artistas; más de 5 podría ser inusual.       |
+| **artist_count**         | 1            | 8            | La mayoría de canciones tienen entre 1 y 8, lo cual es posible.                             |
 | **released_year**        | 1930         | 2023         | Posibles registros antiguos (1930) que podrían no corresponder a música popular en Spotify. |
 | **released_month**       | 1            | 12           | Valores en rango esperado, no hay atípicos.                                                 |
 | **released_day**         | 1            | 31           | Valores en rango esperado según calendario.                                                 |
