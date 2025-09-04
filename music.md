@@ -611,7 +611,7 @@ SELECT
 FROM `laboratoria-470421.data_music.spotify_clean_casted`;
 ```
 
-Para la creación de la variable de playlists totales se hizo al unir las tablas con la siguiente consulta:
+Para la creación de la variable de playlists totales se hizo al `unir las tablas` con la siguiente consulta:
 
 ```
 CREATE OR REPLACE TABLE `laboratoria-470421.data_music.full_music_table` AS
