@@ -132,7 +132,7 @@ FROM `laboratoria-470421.data_music.spotify`
 
 - **bpm** → Beats Per Minute: indica la velocidad de la canción. Valores altos → canción rápida.
 
-- **key** → La tonalidad de la canción, representada como un número (0=C, 1=C♯/D♭, 2=D, …, 11=B). Esto indica la nota base sobre la que está la canción.
+- **key** → La tonalidad de la canción, vemos acordes en forma de letras (A, B,C, C♯/D♭, D, etc). Esto indica la nota base sobre la que está la canción.
 
 - **mode** → Modo musical: 0 = menor, 1 = mayor.
 
@@ -325,7 +325,7 @@ ORDER BY artists_name;
 ```
 
 DISTINCT devuelve cada valor único una sola vez.
-De ahí obtuve:
+Aquí parte de la salida:
 
 ```
 1. (G)I-DLE
@@ -397,7 +397,10 @@ SELECT
   REGEXP_REPLACE(
     REPLACE(
       REPLACE(
-        REPLACE(LOWER(track_name), '��', 'é'),
+        REPLACE(
+          REPLACE(LOWER(track_name), '��', 'ias'),
+          '�', 'é'
+        ),
         'á', 'a'
       ),
       'ä', 'a'
@@ -409,7 +412,10 @@ SELECT
   REGEXP_REPLACE(
     REPLACE(
       REPLACE(
-        REPLACE(LOWER(artists_name), '��', 'é'),
+        REPLACE(
+          REPLACE(LOWER(artists_name), '��', 'ias'),
+          '�', 'é'
+        ),
         'á', 'a'
       ),
       'ä', 'a'
@@ -426,7 +432,7 @@ SELECT
   streams -- lo dejamos tal cual (STRING)
 
 FROM `laboratoria-470421.data_music.spotify`
-WHERE track_id NOT IN ('5080031', '3814670');  -- <--- aquí filtras los duplicados.
+WHERE track_id NOT IN ('5080031', '3814670');  -- <--- aquí filtras los duplicados
 ```
 
 ## **technical_info**
@@ -461,6 +467,43 @@ En mode también había valores válidos: Major/Minor.
 ## Resumen de variables numéricas - `technical_info_dor_dashboard`
 
 Se revisaron las columnas numéricas de la tabla `technical_info_dor_dashboard` para identificar posibles valores atípicos usando MIN, MAX y AVG.
+
+```
+SELECT
+  MIN(bpm) AS min_bpm,
+  MAX(bpm) AS max_bpm,
+  AVG(bpm) AS avg_bpm,
+
+  MIN(`danceability_%`) AS min_danceability,
+  MAX(`danceability_%`) AS max_danceability,
+  AVG(`danceability_%`) AS avg_danceability,
+
+  MIN(`valence_%`) AS min_valence,
+  MAX(`valence_%`) AS max_valence,
+  AVG(`valence_%`) AS avg_valence,
+
+  MIN(`energy_%`) AS min_energy,
+  MAX(`energy_%`) AS max_energy,
+  AVG(`energy_%`) AS avg_energy,
+
+  MIN(`acousticness_%`) AS min_acousticness,
+  MAX(`acousticness_%`) AS max_acousticness,
+  AVG(`acousticness_%`) AS avg_acousticness,
+
+  MIN(`instrumentalness_%`) AS min_instrumentalness,
+  MAX(`instrumentalness_%`) AS max_instrumentalness,
+  AVG(`instrumentalness_%`) AS avg_instrumentalness,
+
+  MIN(`liveness_%`) AS min_liveness,
+  MAX(`liveness_%`) AS max_liveness,
+  AVG(`liveness_%`) AS avg_liveness,
+
+  MIN(`speechiness_%`) AS min_speechiness,
+  MAX(`speechiness_%`) AS max_speechiness,
+  AVG(`speechiness_%`) AS avg_speechiness
+
+FROM `laboratoria-470421.data_music.technical_info_for_dashboard`;
+```
 
 | Columna             | Valor mínimo | Valor máximo | Promedio aproximado | Rango esperado | Comentario                 |
 | ------------------- | ------------ | ------------ | ------------------- | -------------- | -------------------------- |
@@ -509,20 +552,20 @@ FROM `laboratoria-470421.data_music.spotify_clean`;
 | **released_year**        | 1930         | 2023         | Posibles registros antiguos (1930) que podrían no corresponder a música popular en Spotify. |
 | **released_month**       | 1            | 12           | Valores en rango esperado, no hay atípicos.                                                 |
 | **released_day**         | 1            | 31           | Valores en rango esperado según calendario.                                                 |
-| **in_spotify_playlists** | 0            | 52898        | Alta variación; valores muy grandes pueden considerarse outliers de popularidad.            |
+| **in_spotify_playlists** | 31           | 52898        | Alta variación; valores muy grandes pueden considerarse outliers de popularidad.            |
 | **in_spotify_charts**    | 0            | 147          | Rango razonable; outliers posibles en canciones con mucha exposición.                       |
 
 ---
 
 ## Resumen de variables numéricas — Tabla `competition_clean`
 
-| Variable            | Mínimo | Máximo | Promedio | Comentario                                                                                                              |
-| ------------------- | ------ | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------- |
-| in_apple_playlists  | 0      | 672    | 67.81    | Valores dentro de rango esperado.                                                                                       |
-| in_apple_charts     | 0      | 275    | 51.91    | Distribución razonable.                                                                                                 |
-| in_deezer_playlists | 0      | 12367  | 385.19   | Amplia variación, posible sesgo por tracks muy populares.                                                               |
-| in_deezer_charts    | 0      | 58     | 2.67     | Rango consistente.                                                                                                      |
-| in_shazam_charts    | -1     | 1451   | 56.80    | El valor **-1 indica "sin información"** (se imputó así para evitar `NULL` y facilitar visualización en Looker Studio). |
+| Variable            | Mínimo | Máximo | Promedio | Comentario                                                                                                                                                                                      |
+| ------------------- | ------ | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| in_apple_playlists  | 0      | 672    | 67.81    | Valores dentro de rango esperado.                                                                                                                                                               |
+| in_apple_charts     | 0      | 275    | 51.91    | Distribución razonable.                                                                                                                                                                         |
+| in_deezer_playlists | 0      | 12367  | 385.19   | Amplia variación, posible sesgo por tracks muy populares.                                                                                                                                       |
+| in_deezer_charts    | 0      | 58     | 2.67     | Rango consistente.                                                                                                                                                                              |
+| in_shazam_charts    | -1     | 1451   | 56.80    | El valor **-1 indica "sin información"** (se imputó así para evitar `NULL` y facilitar visualización en Looker Studio). En el futuro se debe recalcular el promedio quitando esos valores de -1 |
 
 ---
 
@@ -566,4 +609,73 @@ SELECT
     )
   ) AS release_date
 FROM `laboratoria-470421.data_music.spotify_clean_casted`;
+```
+
+Para la creación de la variable de playlists totales se hizo al unir las tablas con la siguiente consulta:
+
+```
+CREATE OR REPLACE TABLE `laboratoria-470421.data_music.full_music_table` AS
+SELECT
+  s.track_id,
+  s.track_name_clean,
+  s.artists_name_clean,
+  s.artist_count,
+  s.release_date,
+  s.streams,
+
+  -- Playlists
+  s.in_spotify_playlists,
+  c.in_apple_playlists,
+  c.in_deezer_playlists,
+  s.in_spotify_playlists
+    + IFNULL(c.in_apple_playlists,0)
+    + IFNULL(c.in_deezer_playlists,0) AS total_playlists,
+
+  -- Charts
+  s.in_spotify_charts,
+  c.in_apple_charts,
+  c.in_deezer_charts,
+  c.in_shazam_charts,
+  s.in_spotify_charts
+    + IFNULL(c.in_apple_charts,0)
+    + IFNULL(c.in_deezer_charts,0)
+    + IFNULL(c.in_shazam_charts,0) AS total_charts,
+
+  -- Technical info
+  t.bpm,
+  t.key,
+  t.mode,
+  t.`danceability_%`,
+  t.`valence_%`,
+  t.`energy_%`,
+  t.`acousticness_%`,
+  t.`instrumentalness_%`,
+  t.`liveness_%`,
+  t.`speechiness_%`
+
+FROM `laboratoria-470421.data_music.spotify_with_new_vars` AS s
+LEFT JOIN `laboratoria-470421.data_music.competition_clean` AS c
+  ON s.track_id = c.track_id
+LEFT JOIN `laboratoria-470421.data_music.technical_info_for_dashboard` AS t
+  ON s.track_id = t.track_id;
+```
+
+`Construcción de tabla auxiliar`
+Para crear una tabla temporal para calcular el total de canciones por artista solista se ocupó la siguiente consulta:
+
+```
+WITH solo_tracks AS (
+  SELECT
+    artists_name_clean,
+    track_id
+  FROM `laboratoria-470421.data_music.spotify_with_new_vars`
+  WHERE artist_count = 1
+)
+
+SELECT
+  artists_name_clean,
+  COUNT(track_id) AS total_songs_solo
+FROM solo_tracks
+GROUP BY artists_name_clean
+ORDER BY total_songs_solo DESC;
 ```
