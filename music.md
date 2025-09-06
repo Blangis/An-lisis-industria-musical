@@ -1,5 +1,13 @@
 # **Análisis musical**
 
+Preguntas a responder:
+
+- ¿Las canciones con mayor BPM (beats por minuto) tienen más reproducciones en Spotify?
+- ¿Las canciones más populares en Spotify también lo son en otras plataformas como Deezer?
+- ¿Estar en más listas de reproducción se relaciona con mayor cantidad de reproducciones?
+- ¿Los artistas con más canciones disponibles tienen más reproducciones?
+- ¿Las características técnicas de una canción influyen en su número de reproducciones?
+
 # Competition
 
 ### 🔹 Glosario de columnas - tabla `competition`
@@ -594,6 +602,21 @@ SELECT
 FROM `laboratoria-470421.data_music.spotify_clean`;
 ```
 
+Valor mínimo, máximo y promedio de streams ya con el cambio:
+
+```
+SELECT MIN(`streams`) AS min_streams,
+  MAX(`streams`) AS max_streams,
+  AVG(`streams`) AS avg_streams, FROM `laboratoria-470421.data_music.full_music_table`
+```
+
+| Fila | min_streams | max_streams | avg_streams       |
+| ---- | ----------- | ----------- | ----------------- |
+| 1    | -1          | 3703895074  | 513168840.6656149 |
+
+> [!NOTE]
+> El valor `-1` fue imputado para los casos que no tenían información (inicialmente eran `null`).
+
 ## Creación de nuevas variables
 
 ```
@@ -620,6 +643,9 @@ SELECT
   s.track_name_clean,
   s.artists_name_clean,
   s.artist_count,
+  s.released_year,
+  s.released_month,
+  s.released_day,
   s.release_date,
   s.streams,
 
@@ -645,13 +671,13 @@ SELECT
   t.bpm,
   t.key,
   t.mode,
-  t.`danceability_%`,
-  t.`valence_%`,
-  t.`energy_%`,
-  t.`acousticness_%`,
-  t.`instrumentalness_%`,
-  t.`liveness_%`,
-  t.`speechiness_%`
+  t.`danceability_%` AS danceability_pct,
+  t.`valence_%` AS valence_pct,
+  t.`energy_%` AS energy_pct,
+  t.`acousticness_%` AS acousticness_pct,
+  t.`instrumentalness_%` AS instrumentalness_pct,
+  t.`liveness_%` AS liveness_pct,
+  t.`speechiness_%` AS speechiness_pct
 
 FROM `laboratoria-470421.data_music.spotify_with_new_vars` AS s
 LEFT JOIN `laboratoria-470421.data_music.competition_clean` AS c
@@ -679,3 +705,115 @@ FROM solo_tracks
 GROUP BY artists_name_clean
 ORDER BY total_songs_solo DESC;
 ```
+
+# `Se realizó la conexión de datos a Looker Studio`
+
+> **Nota: En Looker Studio**
+>
+> - **Dimensión** → es la categoría que quieres comparar (ej. key, mode, released_year)
+> - **Métrica** → es el número que quieres contar, sumar o promediar (ej. record_count, streams, playlists)
+
+Para hacer algunas de las agrupaciones según variables categóricas se utilizaron algunos campos calculados como:
+
+**Popularidad**
+
+```
+CASE
+  WHEN streams <= 183273246 THEN "Bajo"
+  WHEN streams <= 479655659 THEN "Medio"
+  ELSE "Alto"
+END
+```
+
+Para llegar a las cifras de corte, se realizó la siguiente consulta en bigquery:
+
+```
+-- Para calcular percentiles 33 y 66 de streams a usar para dividir bajo, medio, alto streams
+
+SELECT
+  quantiles[OFFSET(1)] AS p33,
+  quantiles[OFFSET(2)] AS p66
+FROM (
+  SELECT APPROX_QUANTILES(streams, 3) AS quantiles
+  FROM `laboratoria-470421.data_music.full_music_table`
+)
+
+```
+
+_Popularidad_ se usó para el gráfico de _Popularidad por streams_: Clasificar las canciones en rangos de streams, mostrar qué tan populares son las canciones.
+
+También se realizó un comparativo de las tonalidade de las canciones, es decir, de su acorde base y su modo musical (mayor o menor).
+
+Para agrupar por década se utilizó el campo calculado _Década_:
+
+```
+CONCAT(
+  CAST(FLOOR(released_year/10)*10 AS STRING),
+  "s"
+)
+```
+
+- released_year/10 → divide el año entre 10.
+- FLOOR() → redondea hacia abajo (ej. 1995 → 199).
+- \*10 → multiplica de nuevo para obtener la década (→ 1990).
+- CAST(... AS STRING) → convierte a texto.
+- CONCAT(..., "s") → agrega la “s” para que salga como “1990s”, “2000s”, etc.
+
+Para aplicar medidas de tendencia central se hizo uso de Tablas dinámicas, tales como:
+
+> [!INFO] **Promedio de streams por año**
+>
+> - **Filas:** released_year
+> - **Métrica:** streams (AVG)
+> - **Interpretación:** Muestra la tendencia central de popularidad por año.
+
+> [!INFO] **Promedio de streams por década**
+>
+> - **Filas:** Década
+> - **Métrica:** streams (AVG)
+> - **Interpretación:** Muestra la tendencia central de popularidad por década.
+
+> [!INFO] **Mediana de danceability por tonalidad**
+>
+> - **Filas:** key
+> - **Métrica:** danceability_pct (MEDIAN)
+> - **Interpretación:** Indica en qué tonalidades se concentran las canciones más “bailables”.
+
+> [!INFO] **Promedio de BPM por modo**
+>
+> - **Filas:** mode (Major / Minor)
+> - **Métrica:** bpm (AVG)
+> - **Interpretación:** Permite comparar si las canciones en modo menor son más lentas o rápidas que en mayor.
+
+> [!INFO] **Promedio de número de playlists por artista**
+>
+> - **Filas (Dimensión):** artist_name_clean
+> - **Métrica:** AVG(total_playlists)
+> - **Interpretación:** Muestra, en promedio, en cuántas playlists aparece cada artista. Esto permite identificar cuáles son los artistas más presentes en las playlists y da una medida de tendencia central de su popularidad en listas de reproducción.
+> - **Opción adicional:** Se puede agregar MEDIAN(total_playlists) para obtener la mediana, lo que ayuda a entender la tendencia típica sin que los valores extremos influyan demasiado en el promedio.
+
+# Ver distribuciones
+
+Mientras el promedio o mediana nos da un valor representativo, el histograma o boxplot muestra cómo se distribuyen los datos.
+
+---
+
+### 1️⃣ Streams por década
+
+- **Visualización sugerida:** Boxplot para ver la distribución de streams por década.
+
+---
+
+### 2️⃣ Danceability por tonalidad (Key)
+
+- **Visualización sugerida:** Boxplot para comparar danceability según la tonalidad.
+
+---
+
+### 3️⃣ Danceability
+
+- Va de 0 a 100%, y un histograma te permite ver cómo se distribuyen estas métricas entre todas las canciones.
+
+---
+
+Este apartado se realizó en Python por problemas en Looker Studio para crear boxplots.
