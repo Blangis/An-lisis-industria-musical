@@ -810,7 +810,7 @@ Mientras el promedio o mediana nos da un valor representativo, el histograma o b
 
 ---
 
-### 3️⃣ Danceability
+### 3️⃣ Métricas porcentuales
 
 - Va de 0 a 100%, y un histograma te permite ver cómo se distribuyen estas métricas entre todas las canciones.
 
