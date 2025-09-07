@@ -761,31 +761,31 @@ CONCAT(
 
 Para aplicar medidas de tendencia central se hizo uso de Tablas dinámicas, tales como:
 
-> [!INFO] **Promedio de streams por año**
+> **Promedio de streams por año**
 >
 > - **Filas:** released_year
 > - **Métrica:** streams (AVG)
 > - **Interpretación:** Muestra la tendencia central de popularidad por año.
 
-> [!INFO] **Promedio de streams por década**
+> **Promedio de streams por década**
 >
 > - **Filas:** Década
 > - **Métrica:** streams (AVG)
 > - **Interpretación:** Muestra la tendencia central de popularidad por década.
 
-> [!INFO] **Mediana de danceability por tonalidad**
+> **Mediana de danceability por tonalidad**
 >
 > - **Filas:** key
 > - **Métrica:** danceability_pct (MEDIAN)
 > - **Interpretación:** Indica en qué tonalidades se concentran las canciones más “bailables”.
 
-> [!INFO] **Promedio de BPM por modo**
+> **Promedio de BPM por modo**
 >
 > - **Filas:** mode (Major / Minor)
 > - **Métrica:** bpm (AVG)
 > - **Interpretación:** Permite comparar si las canciones en modo menor son más lentas o rápidas que en mayor.
 
-> [!INFO] **Promedio de número de playlists por artista**
+> **Promedio de número de playlists por artista**
 >
 > - **Filas (Dimensión):** artist_name_clean
 > - **Métrica:** AVG(total_playlists)
