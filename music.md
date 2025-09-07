@@ -839,3 +839,28 @@ Para mostrar la dispersión de streams por década, se creó un campo calculado 
 
 - Alto STDDEV: En esa década, las canciones tienen streams muy desiguales: unas con poquísimos y otras con millones (mucha dispersión).
 - Bajo STDDEV: En esa década, las canciones tienen streams más parecidos entre sí (poca dispersión). Se observó en la década de 1940 y 1930.
+
+# Visualizar el comportamiento de los datos a lo largo del tiempo
+
+Se realizaron gráficos de líneas para:
+
+### 🔹 Streams a lo largo del tiempo
+
+- **Dimensión:** `released_year` (o `Década` para agrupar)
+- **Métrica:** `SUM(streams)`
+- **Objetivo:** Mostrar cómo ha cambiado la popularidad de la música a lo largo del tiempo.
+
+**Interpretación:**  
+Se observa un aumento significativo en las reproducciones a partir de los 2000s, con un pico marcado en los 2010s y 2020s, lo cual refleja la consolidación del streaming como la principal forma de consumo musical. Décadas anteriores presentan cifras mucho menores, en parte porque no existía la digitalización de la música.
+
+---
+
+### 🔹 Canciones a lo largo del tiempo
+
+- **Dimensión:** `released_year` (o `Década`)
+- **Métrica:**
+  - `Record Count` → número total de registros (canciones)
+- **Objetivo:** Visualizar el crecimiento en la cantidad de canciones disponibles con el paso del tiempo.
+
+**Interpretación:**  
+Se evidencia un incremento progresivo en la cantidad de lanzamientos musicales. En particular, a partir de los 2000s y con más fuerza en los 2010s y 2020s, específicamente en el 2019 a 2020 el número de canciones disponibles crece rápidamente, lo que coincide con el auge de las plataformas digitales y la democratización de la producción musical.
