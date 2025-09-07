@@ -817,3 +817,25 @@ Mientras el promedio o mediana nos da un valor representativo, el histograma o b
 ---
 
 Este apartado se realizó en Python por problemas en Looker Studio para crear boxplots.
+
+# Aplicar medidas de dispersión
+
+**Desviación estándar del danceability para cada tonalidad.**
+
+Dimensión: key.
+En Métrica, se agregó un campo calculado:
+
+```
+Nombre: STD Danceability
+Fórmula: STDDEV(danceability_pct)
+```
+
+- Valores altos de STDDEV: la métrica está muy dispersa dentro de esa categoría.
+- Valores bajos de STDDEV: los datos son muy homogéneos.
+
+**Desviación estándar de streams por década.**
+
+Para mostrar la dispersión de streams por década, se creó un campo calculado de desviación estándar (STDDEV) y luego se usó un gráfico de barras para visualizar.
+
+- Alto STDDEV: En esa década, las canciones tienen streams muy desiguales: unas con poquísimos y otras con millones (mucha dispersión).
+- Bajo STDDEV: En esa década, las canciones tienen streams más parecidos entre sí (poca dispersión). Se observó en la década de 1940 y 1930.
