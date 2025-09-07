@@ -2,11 +2,11 @@
 
 Preguntas a responder:
 
-- ¿Las canciones con mayor BPM (beats por minuto) tienen más reproducciones en Spotify?
-- ¿Las canciones más populares en Spotify también lo son en otras plataformas como Deezer?
-- ¿Estar en más listas de reproducción se relaciona con mayor cantidad de reproducciones?
-- ¿Los artistas con más canciones disponibles tienen más reproducciones?
-- ¿Las características técnicas de una canción influyen en su número de reproducciones?
+- [¿Las canciones con mayor BPM (beats por minuto) tienen más reproducciones en Spotify?](#correlación-entre-bpm-y-streams-streams-es-de-spotify)
+- [¿Las canciones más populares en Spotify también lo son en otras plataformas como Deezer?](#correlación-entre-playlists-de-spotify-y-deezer)
+- [¿Estar en más listas de reproducción se relaciona con mayor cantidad de reproducciones?](#correlación-entre-streams-y-playlists)
+- [¿Los artistas con más canciones disponibles tienen más reproducciones?](#correlación-entre-número-de-canciones-por-artista-y-total-de-reproducciones)
+- [¿Las características técnicas de una canción influyen en su número de reproducciones?](#correlación-entre-streams-y-bailabilidad)
 
 # Competition
 
@@ -634,7 +634,7 @@ SELECT
 FROM `laboratoria-470421.data_music.spotify_clean_casted`;
 ```
 
-Para la creación de la variable de playlists totales se hizo al `unir las tablas` con la siguiente consulta:
+La creación de la variable de playlists totales se hizo al `unir las tablas` con la siguiente consulta:
 
 ```
 CREATE OR REPLACE TABLE `laboratoria-470421.data_music.full_music_table` AS
@@ -800,13 +800,13 @@ Mientras el promedio o mediana nos da un valor representativo, el histograma o b
 
 ### 1️⃣ Streams por década
 
-- **Visualización sugerida:** Boxplot para ver la distribución de streams por década.
+- **Visualización:** Boxplot para ver la distribución de streams por década.
 
 ---
 
 ### 2️⃣ Danceability por tonalidad (Key)
 
-- **Visualización sugerida:** Boxplot para comparar danceability según la tonalidad.
+- **Visualización:** Boxplot para comparar danceability según la tonalidad.
 
 ---
 
@@ -816,7 +816,7 @@ Mientras el promedio o mediana nos da un valor representativo, el histograma o b
 
 ---
 
-Este apartado se realizó en Python por problemas en Looker Studio para crear boxplots.
+> Este apartado se realizó en Python por problemas en Looker Studio para crear boxplots.
 
 # Aplicar medidas de dispersión
 
@@ -864,3 +864,120 @@ Se observa un aumento significativo en las reproducciones a partir de los 2000s,
 
 **Interpretación:**  
 Se evidencia un incremento progresivo en la cantidad de lanzamientos musicales. En particular, a partir de los 2000s y con más fuerza en los 2010s y 2020s, específicamente en el 2019 a 2020 el número de canciones disponibles crece rápidamente, lo que coincide con el auge de las plataformas digitales y la democratización de la producción musical.
+
+# Calcular correlación entre variables
+
+En BigQuery, se usa la función CORR(x, y)
+para calcular la correlación de Pearson entre dos variables continuas.
+
+El coeficiente de correlación de Pearson, representado comúnmente como "r", es una medida estadística que cuantifica la relación lineal entre dos variables continuas.
+
+- Si el valor de "r" es cercano a 1, esto sugiere una fuerte correlación positiva, lo que significa que cuando una variable aumenta, la otra también tiende a aumentar de manera lineal.
+- Si el valor de "r" es cercano a -1, esto indica una fuerte correlación negativa, lo que significa que cuando una variable aumenta, la otra tiende a disminuir de manera lineal.
+- Si el valor de "r" está cerca de 0, esto sugiere una falta de correlación lineal entre las dos variables.
+
+### Correlación entre Streams y Playlists
+
+Para la correlación de streams y listas de reproducciones totales se ocupó la consulta:
+
+```
+SELECT
+  CORR(streams, total_playlists) AS corr_streams_playlists
+FROM `laboratoria-470421.data_music.full_music_table`;
+```
+
+El valor de `correlación obtenido fue 0.78`, lo que indica una relación positiva fuerte entre el número de playlists en que aparece una canción y la cantidad de streams que acumula. En otras palabras, a mayor número de playlists, mayor número de streams. cuantas más playlists incluyen a una canción, mayor número de streams obtiene.
+
+<img src="./assets/correlations/streams-vs-total-playlist.png" alt="Descripción" width="400">
+
+### Correlación entre Streams y Bailabilidad
+
+Para la correlación de streams y bailabilidad se ocupó la siguiente consulta:
+
+```
+SELECT
+  CORR(streams, danceability_pct) AS corr_streams_danceability
+FROM `laboratoria-470421.data_music.full_music_table`;
+```
+
+El valor de `correlación obtenido fue -0.10`. El valor está cerca de 0, por lo que **no** hay relación lineal significativa entre streams y danceability.
+
+<img src="./assets/correlations/streams-vs-danceability.png" alt="Descripción" width="400">
+
+### Correlación entre bpm y streams (streams es de spotify)
+
+```
+SELECT
+  CORR(streams, bpm) AS corr_streams_bpm
+FROM `laboratoria-470421.data_music.full_music_table`;
+```
+
+El valor de `correlación obtenido fue de -0.0024` está muy cercano a 0, lo que significa que no existe una correlación lineal significativa entre los BPM y la cantidad de streams.
+
+En otras palabras, que una canción tenga más (o menos) BPM no influye en que tenga más reproducciones en Spotify.
+
+<img src="./assets/correlations/streams-vs-bpm.png" alt="Descripción" width="400">
+
+### Correlación entre playlists de spotify y deezer
+
+Se aplicó la consulta:
+
+```
+SELECT CORR(in_spotify_playlists, in_deezer_playlists) AS corr_spotify_deezer
+FROM `laboratoria-470421.data_music.full_music_table`;
+```
+
+El valor de `correlación obtenido fue de 0.83`, lo que indica una relación positiva fuerte entre la presencia de canciones en playlists de Spotify y en playlists de Deezer.
+
+En otras palabras, las canciones que aparecen en más playlists de Spotify tienden a aparecer también en más playlists de Deezer, mostrando coincidencia en popularidad entre ambas plataformas.
+
+<img src="./assets/correlations/playlist-spoty-vs-deezer.png" alt="Descripción" width="400">
+
+### Correlación entre número de canciones por artista y total de reproducciones
+
+Se realizaron dos consultas para responder:
+
+```
+SELECT
+  artists_name_clean artist,
+  COUNT(*) AS total_songs,
+  SUM(streams) AS total_streams
+FROM `laboratoria-470421.data_music.full_music_table`
+GROUP BY artist;
+```
+
+Explicación:
+
+- artists_name_clean artist → renombra la columna artists_name_clean como artist.
+- COUNT(\*) AS total_songs → cuenta cuántas canciones tiene cada artista.
+- SUM(streams) AS total_streams → suma todos los streams de cada artista.
+- GROUP BY artist → agrupa los datos por artista para hacer los conteos y sumas por cada uno.
+
+De la salida cada fila representa un artista y muestra: total_songs y total_streams
+
+Luego se corrió un segundo bloque de consulta:
+
+```
+SELECT CORR(total_songs, total_streams) AS corr_artist_songs_streams
+FROM (
+  SELECT
+    artists_name_clean artist,
+    COUNT(*) AS total_songs,
+    SUM(streams) AS total_streams
+  FROM `laboratoria-470421.data_music.full_music_table`
+  GROUP BY artist
+);
+```
+
+Esta última consulta toma la tabla que obtuve en el primer bloque (subconsulta) y calcula la correlación de Pearson entre:
+
+- total_songs → cuántas canciones tiene cada artista
+- total_streams → cuántos streams acumula cada artista
+
+Resultado: 0.7807
+
+El valor de `correlación obtenido de 0.78` indica una relación positiva fuerte.
+
+Los artistas que tienen más canciones publicadas tienden a acumular más streams totales. No significa que cada canción individual tenga más streams, sino que el total de canciones contribuye a un mayor número de streams.
+
+<img src="./assets/correlations/totalcanciones-vs-streams-por-artista.png" alt="Descripción" width="400">
