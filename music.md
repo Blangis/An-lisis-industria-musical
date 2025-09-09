@@ -6,7 +6,7 @@ Preguntas a responder:
 - [¿Las canciones más populares en Spotify también lo son en otras plataformas como Deezer?](#correlación-entre-playlists-de-spotify-y-deezer)
 - [¿Estar en más listas de reproducción se relaciona con mayor cantidad de reproducciones?](#correlación-entre-streams-y-playlists)
 - [¿Los artistas con más canciones disponibles tienen más reproducciones?](#correlación-entre-número-de-canciones-por-artista-y-total-de-reproducciones)
-- [¿Las características técnicas de una canción influyen en su número de reproducciones?](#correlación-entre-streams-y-bailabilidad)
+- [¿Las características técnicas de una canción influyen en su número de reproducciones?](#características-técnicas-y-streams-correlación-entre-streams-y-bailabilidad)
 
 # Competition
 
@@ -890,7 +890,7 @@ El valor de `correlación obtenido fue 0.78`, lo que indica una relación positi
 
 <img src="./assets/correlations/streams-vs-total-playlist.png" alt="Descripción" width="400">
 
-### Correlación entre Streams y Bailabilidad
+### Características técnicas y streams: Correlación entre Streams y Bailabilidad
 
 Para la correlación de streams y bailabilidad se ocupó la siguiente consulta:
 
@@ -903,6 +903,39 @@ FROM `laboratoria-470421.data_music.full_music_table`;
 El valor de `correlación obtenido fue -0.10`. El valor está cerca de 0, por lo que **no** hay relación lineal significativa entre streams y danceability.
 
 <img src="./assets/correlations/streams-vs-danceability.png" alt="Descripción" width="400">
+
+Se realizó la siguiente consulta para determinar correlación de Pearson con otras características técnicas:
+
+```
+-- Correlaciones técnicas
+SELECT
+  CORR(streams, danceability_pct) AS corr_streams_danceability,
+  CORR(streams, valence_pct) AS corr_streams_valence,
+  CORR(streams, energy_pct) AS corr_streams_energy,
+  CORR(streams, acousticness_pct) AS corr_streams_acousticness,
+  CORR(streams, instrumentalness_pct) AS corr_streams_instrumentalness,
+  CORR(streams, liveness_pct) AS corr_streams_liveness,
+  CORR(streams, speechiness_pct) AS corr_streams_speechiness
+FROM `laboratoria-470421.data_music.full_music_table`;
+```
+
+Obteniendo los siguientes resultados:
+
+| Variable             | Correlación (r) |
+| -------------------- | --------------- |
+| Danceability (%)     | -0.105          |
+| Valence (%)          | -0.042          |
+| Energy (%)           | -0.027          |
+| Acousticness (%)     | -0.003          |
+| Instrumentalness (%) | -0.045          |
+| Liveness (%)         | -0.050          |
+| Speechiness (%)      | -0.111          |
+
+Todas las correlaciones están muy cercanas a 0 (entre -0.11 y -0.003).
+
+Esto significa que no existe relación lineal significativa entre el número de streams y las características musicales evaluadas (danceability, valence, energy, acousticness, instrumentalness, liveness, speechiness).
+
+Los streams no dependen de estos atributos musicales de forma directa.
 
 ### Correlación entre bpm y streams (streams es de spotify)
 
@@ -932,6 +965,19 @@ El valor de `correlación obtenido fue de 0.83`, lo que indica una relación pos
 En otras palabras, las canciones que aparecen en más playlists de Spotify tienden a aparecer también en más playlists de Deezer, mostrando coincidencia en popularidad entre ambas plataformas.
 
 <img src="./assets/correlations/playlist-spoty-vs-deezer.png" alt="Descripción" width="400">
+
+### Correlación entre playlist de spotify y apple
+
+Se aplicó la siguiente consulta:
+
+```
+SELECT CORR(in_spotify_playlists, in_apple_playlists) AS corr_spotify_apple
+FROM `laboratoria-470421.data_music.full_music_table`;
+```
+
+El valor de `correlación obtenido fue de 0.71`, lo que indica una relación positiva fuerte entre la presencia de canciones en playlists de Spotify y en playlists de Apple, aunque menor que la que tiene con Deezer.
+
+Las canciones que aparecen en más playlists de Spotify tienden a aparecer también en más playlists de Apple, mostrando coincidencia en popularidad entre ambas plataformas.
 
 ### Correlación entre número de canciones por artista y total de reproducciones
 
