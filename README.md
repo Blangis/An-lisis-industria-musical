@@ -57,9 +57,9 @@ Se generaron **scatterplots** y gráficos de línea para ilustrar la relación e
 
 ## Tecnologías utilizadas
 
-- **Python**: Pandas, Matplotlib, Seaborn.
+- **Python**: Pandas, Matplotlib, Seaborn. [Ver en Colab](./distribuciones.ipynb)
 - **BigQuery**: consultas SQL para cálculo de mediana, desviación estándar y correlaciones.
-- **Looker Studio**: visualizaciones de dispersión y series temporales.
+- **Looker Studio**: Visualizaciones de variables categóricas, dispersión, series temporales y creación de Dashboard. [Ver aquí](https://lookerstudio.google.com/reporting/09355e3f-e69b-4056-93b2-5ddf755c39dd)
 
 ---
 
