@@ -12,6 +12,7 @@ Se utilizan datos de Spotify, Deezer y Apple Music para estudiar tendencias y co
 - **Python**: Pandas, Matplotlib, Seaborn. [Ver en Colab](./distribuciones.ipynb)
 - **BigQuery**: consultas SQL para cálculo de mediana, desviación estándar y correlaciones.
 - **Looker Studio**: Visualizaciones de variables categóricas, dispersión, series temporales y creación de **Dashboard**. [Ver aquí](https://lookerstudio.google.com/reporting/09355e3f-e69b-4056-93b2-5ddf755c39dd)
+- **Documentación** [Ver aquí](./music.md)
 
 ---
 
